@@ -1,0 +1,101 @@
+
+
+
+
+import re
+import telebot
+from telebot import types
+import requests
+import json
+import random
+
+class TelegramBot:
+    def __init__(self, token, api_key):
+        self.bot = telebot.TeleBot(token)
+        self.api_key = api_key
+
+    def respond_to_photo(self, message):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Страничка Егра', url='https://t.me/BinOfEargosha'))
+        self.bot.reply_to(message, 'Конечно красиво НО арты Егора лучше!', reply_markup=markup)
+
+    def start(self, message):
+        self.bot.send_message(message.chat.id, f'Приветствую Вас, госпожа {message.from_user.first_name} {message.from_user.last_name}')
+
+    def help(self, message):
+        self.bot.send_message(message.chat.id, f'Помоги себе сам')
+
+    def respond_to_text(self, message):
+        response = ""
+        mess = message.text.lower()
+        if re.search(r'привет|hi', mess):
+            response += f'Hi, {message.from_user.first_name} {message.from_user.last_name}\n'
+        if "скинь подкат" in mess:
+            response += 'Я не вор, но тебя бы похитил❤️'
+        if "пока" in mess or "прощай мой друг" in mess:
+            response += 'Пока, котик❤️'
+        if response:
+            self.bot.send_message(message.chat.id, response)
+
+    def get_weather(self, message):
+        city = message.text.strip().lower()
+        res = requests.get(f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={self.api_key}&units=metric')
+        if res.status_code == 200:
+            data = json.loads(res.text)
+            temp = data['main']['temp']
+            self.bot.send_message(message.chat.id, f'Сейчас погода: {temp}°C')
+            image = 'holodno.jpg' if temp < -30.0 else ''
+            if image:
+                file = open(image, 'rb')
+                self.bot.send_photo(message.chat.id, file)
+        else:
+            self.bot.send_message(message.chat.id, 'Город не найден, попробуйте еще раз')
+
+    def send_random_number(self, message):
+        random_num = random.randint(1, 100)
+        self.bot.send_message(message.chat.id, f'Random number: {random_num}')
+
+    def start_bot(self):
+        @self.bot.message_handler(content_types=['photo'])
+        def photo_handler(message):
+            self.respond_to_photo(message)
+
+        @self.bot.message_handler(commands=['start', 'hello'])
+        def start_handler(message):
+            self.start(message)
+
+        @self.bot.message_handler(commands=['help'])
+        def help_handler(message):
+            self.help(message)
+
+        @self.bot.message_handler()
+        def text_handler(message):
+            self.respond_to_text(message)
+
+        @self.bot.message_handler(commands=['weather'])
+        def weather_handler(message):
+            self.get_weather(message)
+
+        @self.bot.message_handler(commands=['random'])
+        def random_number_handler(message):
+            self.send_random_number(message)
+
+        self.bot.polling(none_stop=True)
+
+
+if __name__ == "__main__":
+    token = '6896488946:AAG4sOBOn09FggQLS7hgMEhiF8s6gZjIX8I'
+    api_key = '876f9b02c8b78fa64b611c823251e1ff'
+    bot = TelegramBot(token, api_key)
+    bot.start_bot()
+
+# Работа постоянно
+#bot.polling(none_stop=True)
+
+#bot.infinity_polling()
+
+
+
+
+
+
